@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"github.com/rs/zerolog"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -57,12 +58,15 @@ func (o *Observer) handleQueue(handler ObserverHandler) {
 
 		logger.Debug().Msg("Handling item")
 
-		if err := handler.Handle(item); err != nil {
-			o.queue.AddRateLimited(item)
-			logger.Warn().Err(err).Msg("Error occurred while handling item")
-		} else {
+		if err := handler.Handle(item); err == nil {
 			o.queue.Forget(item)
 			logger.Debug().Msg("Done handling item")
+		} else if errors.Is(err, IrrecoverableError) {
+			o.queue.Forget(item)
+			logger.Error().Err(err).Msg("Giving up because of fatal error")
+		} else {
+			o.queue.AddRateLimited(item)
+			logger.Warn().Err(err).Msg("Error occurred while handling item")
 		}
 
 		o.queue.Done(item)

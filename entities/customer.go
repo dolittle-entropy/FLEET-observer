@@ -1,6 +1,6 @@
 package entities
 
 type Customer struct {
-	ID   string `bson:"_id"`
+	ID   string `bson:"id"`
 	Name string `bson:"name"`
 }
