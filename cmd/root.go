@@ -22,4 +22,5 @@ func init() {
 	root.PersistentFlags().String("mongodb.connection-string", "mongodb://localhost:27017/observer", "The connection string to MongoDB")
 
 	root.AddCommand(observe)
+	root.AddCommand(drop)
 }
