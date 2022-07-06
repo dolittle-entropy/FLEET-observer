@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"github.com/rs/zerolog"
 	"os"
 	"os/signal"
 )
 
-func StopChannelFromSignals(logger zerolog.Logger) <-chan struct{} {
-	stopCh := make(chan struct{})
+func ContextFromSignals(logger zerolog.Logger) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
@@ -15,14 +16,14 @@ func StopChannelFromSignals(logger zerolog.Logger) <-chan struct{} {
 	go func() {
 		<-signals
 		logger.Info().Msg("Caught interrupt signal, shutting down...")
-		close(stopCh)
+		cancel()
 	}()
 
-	return stopCh
+	return ctx
 }
 
-func WaitForStop(stopCh <-chan struct{}, logger zerolog.Logger) error {
-	<-stopCh
+func WaitForStop(logger zerolog.Logger, ctx context.Context) error {
+	<-ctx.Done()
 	logger.Info().Msg("Goodbye")
 	return nil
 }

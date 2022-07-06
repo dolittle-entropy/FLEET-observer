@@ -58,7 +58,7 @@ func (o *Observer) handleQueue(handler ObserverHandler) {
 		logger.Debug().Msg("Handling item")
 
 		if err := handler.Handle(item); err != nil {
-			o.queue.AddRateLimited(err)
+			o.queue.AddRateLimited(item)
 			logger.Warn().Err(err).Msg("Error occurred while handling item")
 		} else {
 			o.queue.Forget(item)

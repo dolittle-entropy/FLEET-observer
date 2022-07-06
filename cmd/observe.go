@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"dolittle.io/fleet-observer/config"
 	"dolittle.io/fleet-observer/kubernetes"
+	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/observing"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/informers"
-	"time"
 )
 
 var observe = &cobra.Command{
@@ -22,21 +24,25 @@ var observe = &cobra.Command{
 			return err
 		}
 
-		factory := informers.NewSharedInformerFactory(client, 1*time.Minute)
+		factory := informers.NewSharedInformerFactory(client, config.Duration("kubernetes.sync-interval"))
 
-		observer := kubernetes.NewObserver("namespaces", factory.Core().V1().Namespaces().Informer(), logger)
+		ctx := ContextFromSignals(logger)
 
-		stop := StopChannelFromSignals(logger)
+		database, err := mongo.ConnectToMongo(config, logger, ctx)
+		if err != nil {
+			return err
+		}
 
-		observer.Start(kubernetes.ObserverHandlerFuncs{
-			HandleFunc: func(obj any) error {
-				logger.Info().Interface("obj", obj).Msg("Handling")
-				return nil
-			},
-		}, stop)
+		repositories := mongo.NewRepositories(database, ctx)
 
-		go factory.Start(stop)
+		observing.StartAllObservers(factory, repositories, logger, ctx)
+		go factory.Start(ctx.Done())
 
-		return WaitForStop(stop, logger)
+		WaitForStop(logger, ctx)
+		return database.Client().Disconnect(context.Background())
 	},
+}
+
+func init() {
+	observe.Flags().String("kubernetes.sync-interval", "1m", "The Kubernetes informer sync interval")
 }
