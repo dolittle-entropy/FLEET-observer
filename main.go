@@ -1,37 +1,36 @@
 package main
 
 import (
-	"context"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"log"
+	"dolittle.io/fleet-observer/kubernetes"
+	"github.com/rs/zerolog"
+	"k8s.io/client-go/informers"
+	"os"
+	"time"
 )
 
 func main() {
-	log.Println("Starting up observer")
+	logger := zerolog.New(os.Stdout)
+	logger.Info().Msg("Starting observer")
 
-	//config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
-	//if err != nil {
-	//	log.Fatalln(err)
-	//}
-
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ClientConfig()
+	client, err := kubernetes.NewClientWithDefaultConfig()
 	if err != nil {
-		log.Fatalln(err)
+		return
 	}
 
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	factory := informers.NewSharedInformerFactory(client, 1*time.Minute)
 
-	namespaces, err := client.CoreV1().Namespaces().List(context.Background(), metaV1.ListOptions{})
-	if err != nil {
-		log.Fatalln(err)
-	}
+	observer := kubernetes.NewObserver("namespaces", factory.Core().V1().Namespaces().Informer(), logger)
 
-	for _, namespace := range namespaces.Items {
-		log.Println("Namespace", namespace.GetName())
-	}
+	stop := make(chan struct{})
+	observer.Start(kubernetes.ObserverHandlerFuncs{
+		HandleFunc: func(obj any) error {
+			logger.Info().Interface("obj", obj).Msg("Handling")
+			return nil
+		},
+	}, stop)
+
+	go factory.Start(stop)
+	factory.WaitForCacheSync(stop)
+
+	<-stop
 }
