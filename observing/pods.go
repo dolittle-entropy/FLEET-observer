@@ -6,6 +6,7 @@ import (
 	"dolittle.io/fleet-observer/mongo"
 	"fmt"
 	"github.com/rs/zerolog"
+	appsV1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 	listersAppsV1 "k8s.io/client-go/listers/apps/v1"
 	listersCoreV1 "k8s.io/client-go/listers/core/v1"
@@ -113,11 +114,17 @@ func (ph *PodsHandler) Handle(obj any) error {
 	customerConfigHasher.WriteConfigMap(envConfig)
 	customerConfigHasher.WriteSecret(envSecret)
 
-	owners, err := ph.replicasets.GetPodReplicaSets(pod)
-	if err != nil {
-		return err
+	var replicaset *appsV1.ReplicaSet
+	hasReplicaset := false
+	for _, owner := range pod.GetOwnerReferences() {
+		if owner.Kind == "ReplicaSet" {
+			if replicaset, err = ph.replicasets.ReplicaSets(pod.GetNamespace()).Get(owner.Name); err == nil {
+				hasReplicaset = true
+				break
+			}
+		}
 	}
-	if len(owners) != 1 {
+	if !hasReplicaset {
 		return PodOwnerNotFound
 	}
 
@@ -148,7 +155,7 @@ func (ph *PodsHandler) Handle(obj any) error {
 	instance := entities.DeploymentInstance{
 		ID:                            string(pod.GetUID()),
 		Started:                       pod.GetCreationTimestamp().UTC(),
-		InstanceOfDeploymentID:        fmt.Sprintf("%v", owners[0].GetGeneration()),
+		InstanceOfDeploymentID:        fmt.Sprintf("%v", replicaset.GetGeneration()),
 		DeploymentOfArtifactID:        microserviceID,
 		DeployedInEnvironmentName:     environmentName,
 		EnvironmentOfApplicationID:    applicationID,
