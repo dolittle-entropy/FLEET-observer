@@ -9,6 +9,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 type ReplicasetHandler struct {
@@ -71,30 +72,19 @@ func (rh *ReplicasetHandler) Handle(obj any) error {
 	}
 
 	// -- Set all the entities --
-	environment := entities.Environment{
-		Name:                       environmentName,
-		OwnedByCustomerID:          tenantID,
-		EnvironmentOfApplicationID: applicationID,
-	}
+	environment := entities.NewEnvironment(tenantID, applicationID, environmentName)
 	if err := rh.environments.Set(environment); err != nil {
 		return err
 	}
 	logger.Debug().Interface("environment", environment).Msg("Updated environment")
 
-	artifact := entities.Artifact{
-		ID:                    microserviceID,
-		DevelopedByCustomerID: tenantID,
-	}
+	artifact := entities.NewArtifact(tenantID, microserviceID)
 	if err := rh.artifacts.Set(artifact); err != nil {
 		return err
 	}
 	logger.Debug().Interface("artifact", artifact).Msg("Updated artifact")
 
-	artifactVersion := entities.ArtifactVersion{
-		Name:                  artifactVersionName,
-		VersionOfArtifactID:   microserviceID,
-		DevelopedByCustomerID: tenantID,
-	}
+	artifactVersion := entities.NewArtifactVersion(tenantID, microserviceID, artifactVersionName, time.Time{})
 	if err := rh.artifacts.SetVersion(artifactVersion); err != nil {
 		return err
 	}
@@ -105,16 +95,15 @@ func (rh *ReplicasetHandler) Handle(obj any) error {
 	}
 	logger.Debug().Interface("version", runtimeVersion).Msg("Updated runtime version")
 
-	deployment := entities.Deployment{
-		ID:                         fmt.Sprintf("%v", replicaset.GetGeneration()),
-		Created:                    replicaset.GetCreationTimestamp().UTC(),
-		DeploymentOfArtifactID:     microserviceID,
-		DeployedInEnvironmentName:  environmentName,
-		EnvironmentOfApplicationID: applicationID,
-		OwnedByCustomerID:          tenantID,
-		UsesArtifactVersion:        artifactVersionName,
-		UsesRuntimeVersion:         runtimeVersion.VersionString(),
-	}
+	deployment := entities.NewDeployment(
+		tenantID,
+		applicationID,
+		environmentName,
+		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		replicaset.GetCreationTimestamp().UTC(),
+		artifactVersion,
+		runtimeVersion,
+	)
 	if err := rh.deployments.Set(deployment); err != nil {
 		return err
 	}
@@ -141,12 +130,13 @@ func parseRuntimeVersion(runtimeContainer coreV1.Container) (entities.RuntimeVer
 	if len(matches) < 6 {
 		return entities.RuntimeVersion{}, FailedToParseRuntimeVersion(runtimeContainer.Image)
 	}
-	return entities.RuntimeVersion{
-		Major:      mustParseInt(matches[1]),
-		Minor:      mustParseInt(matches[2]),
-		Patch:      mustParseInt(matches[3]),
-		Prerelease: matches[5],
-	}, nil
+	return entities.NewRuntimeVersion(
+		mustParseInt(matches[1]),
+		mustParseInt(matches[2]),
+		mustParseInt(matches[3]),
+		matches[5],
+		time.Time{},
+	), nil
 }
 
 func mustParseInt(value string) int {

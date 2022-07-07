@@ -128,41 +128,40 @@ func (ph *PodsHandler) Handle(obj any) error {
 		return PodOwnerNotFound
 	}
 
-	runtimeConfig := entities.RuntimeConfiguration{
-		ContentHash:                runtimeConfigHasher.GetComputedHash(),
-		ConfigForArtifactID:        microserviceID,
-		DeployedInEnvironmentName:  environmentName,
-		EnvironmentOfApplicationID: applicationID,
-		OwnedByCustomerID:          tenantID,
-	}
+	runtimeConfig := entities.NewRuntimeConfiguration(
+		tenantID,
+		applicationID,
+		environmentName,
+		microserviceID,
+		runtimeConfigHasher.GetComputedHash(),
+	)
 	if err := ph.configurations.SetRuntime(runtimeConfig); err != nil {
 		return err
 	}
 	logger.Debug().Interface("config", runtimeConfig).Msg("Updated runtime configuration")
 
-	customerConfig := entities.CustomerConfiguration{
-		ContentHash:                customerConfigHasher.GetComputedHash(),
-		ConfigForArtifactID:        microserviceID,
-		DeployedInEnvironmentName:  environmentName,
-		EnvironmentOfApplicationID: applicationID,
-		OwnedByCustomerID:          tenantID,
-	}
-	if err := ph.configurations.SetCustomer(customerConfig); err != nil {
+	customerConfig := entities.NewArtifactConfiguration(
+		tenantID,
+		applicationID,
+		environmentName,
+		microserviceID,
+		customerConfigHasher.GetComputedHash(),
+	)
+	if err := ph.configurations.SetArtifact(customerConfig); err != nil {
 		return err
 	}
 	logger.Debug().Interface("config", customerConfig).Msg("Updated customer configuration")
 
-	instance := entities.DeploymentInstance{
-		ID:                            string(pod.GetUID()),
-		Started:                       pod.GetCreationTimestamp().UTC(),
-		InstanceOfDeploymentID:        fmt.Sprintf("%v", replicaset.GetGeneration()),
-		DeploymentOfArtifactID:        microserviceID,
-		DeployedInEnvironmentName:     environmentName,
-		EnvironmentOfApplicationID:    applicationID,
-		OwnedByCustomerID:             tenantID,
-		UsesArtifactConfigurationHash: customerConfigHasher.GetComputedHash(),
-		UsesRuntimeConfigurationHash:  runtimeConfigHasher.GetComputedHash(),
-	}
+	instance := entities.NewDeploymentInstance(
+		tenantID,
+		applicationID,
+		environmentName,
+		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		string(pod.GetUID()),
+		pod.GetCreationTimestamp().UTC(),
+		customerConfig,
+		runtimeConfig,
+	)
 	if err := ph.deployments.SetInstance(instance); err != nil {
 		return err
 	}

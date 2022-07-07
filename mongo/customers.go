@@ -3,7 +3,6 @@ package mongo
 import (
 	"context"
 	"dolittle.io/fleet-observer/entities"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,9 +21,8 @@ func NewCustomers(database *mongo.Database, ctx context.Context) *Customers {
 }
 
 func (c *Customers) Set(customer entities.Customer) error {
-	id := fmt.Sprintf("%v", customer.ID)
 	update := bson.D{{"$set", customer}}
-	_, err := c.collection.UpdateByID(c.ctx, id, update, options.Update().SetUpsert(true))
+	_, err := c.collection.UpdateByID(c.ctx, customer.UID, update, options.Update().SetUpsert(true))
 	return err
 }
 

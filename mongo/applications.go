@@ -3,7 +3,6 @@ package mongo
 import (
 	"context"
 	"dolittle.io/fleet-observer/entities"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,8 +21,21 @@ func NewApplications(database *mongo.Database, ctx context.Context) *Application
 }
 
 func (a *Applications) Set(application entities.Application) error {
-	id := fmt.Sprintf("%v/%v", application.OwnedByCustomerID, application.ID)
 	update := bson.D{{"$set", application}}
-	_, err := a.collection.UpdateByID(a.ctx, id, update, options.Update().SetUpsert(true))
+	_, err := a.collection.UpdateByID(a.ctx, application.UID, update, options.Update().SetUpsert(true))
 	return err
+}
+
+func (a *Applications) List() ([]entities.Application, error) {
+	cursor, err := a.collection.Find(a.ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	var applications []entities.Application
+	if err := cursor.All(a.ctx, &applications); err != nil {
+		return nil, err
+	}
+
+	return applications, cursor.Close(a.ctx)
 }

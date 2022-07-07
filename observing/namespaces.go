@@ -43,20 +43,13 @@ func (nh *NamespacesHandler) Handle(obj any) error {
 	tenantName := namespace.GetLabels()["tenant"]
 	applicationName := namespace.GetLabels()["application"]
 
-	customer := entities.Customer{
-		ID:   tenantID,
-		Name: tenantName,
-	}
+	customer := entities.NewCustomer(tenantID, tenantName)
 	if err := nh.customers.Set(customer); err != nil {
 		return err
 	}
 	logger.Debug().Interface("customer", customer).Msg("Updated customer")
 
-	application := entities.Application{
-		ID:                applicationID,
-		Name:              applicationName,
-		OwnedByCustomerID: tenantID,
-	}
+	application := entities.NewApplication(tenantID, applicationID, applicationName)
 	if err := nh.applications.Set(application); err != nil {
 		return err
 	}

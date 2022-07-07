@@ -23,4 +23,5 @@ func init() {
 
 	root.AddCommand(observe)
 	root.AddCommand(drop)
+	root.AddCommand(export)
 }

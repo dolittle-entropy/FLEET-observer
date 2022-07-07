@@ -21,8 +21,21 @@ func NewRuntimes(database *mongo.Database, ctx context.Context) *Runtimes {
 }
 
 func (r *Runtimes) SetVersion(version entities.RuntimeVersion) error {
-	id := version.VersionString()
 	update := bson.D{{"$set", version}}
-	_, err := r.versionsCollection.UpdateByID(r.ctx, id, update, options.Update().SetUpsert(true))
+	_, err := r.versionsCollection.UpdateByID(r.ctx, version.UID, update, options.Update().SetUpsert(true))
 	return err
+}
+
+func (r *Runtimes) ListVersions() ([]entities.RuntimeVersion, error) {
+	cursor, err := r.versionsCollection.Find(r.ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	var versions []entities.RuntimeVersion
+	if err := cursor.All(r.ctx, &versions); err != nil {
+		return nil, err
+	}
+
+	return versions, cursor.Close(r.ctx)
 }

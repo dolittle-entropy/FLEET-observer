@@ -3,7 +3,6 @@ package mongo
 import (
 	"context"
 	"dolittle.io/fleet-observer/entities"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,15 +23,41 @@ func NewArtifacts(database *mongo.Database, ctx context.Context) *Artifacts {
 }
 
 func (a *Artifacts) Set(artifact entities.Artifact) error {
-	id := fmt.Sprintf("%v/%v", artifact.DevelopedByCustomerID, artifact.ID)
 	update := bson.D{{"$set", artifact}}
-	_, err := a.collection.UpdateByID(a.ctx, id, update, options.Update().SetUpsert(true))
+	_, err := a.collection.UpdateByID(a.ctx, artifact.UID, update, options.Update().SetUpsert(true))
 	return err
 }
 
+func (a *Artifacts) List() ([]entities.Artifact, error) {
+	cursor, err := a.collection.Find(a.ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	var artifacts []entities.Artifact
+	if err := cursor.All(a.ctx, &artifacts); err != nil {
+		return nil, err
+	}
+
+	return artifacts, cursor.Close(a.ctx)
+}
+
 func (a *Artifacts) SetVersion(version entities.ArtifactVersion) error {
-	id := fmt.Sprintf("%v/%v/%v", version.DevelopedByCustomerID, version.VersionOfArtifactID, version.Name)
 	update := bson.D{{"$set", version}}
-	_, err := a.versionsCollection.UpdateByID(a.ctx, id, update, options.Update().SetUpsert(true))
+	_, err := a.versionsCollection.UpdateByID(a.ctx, version.UID, update, options.Update().SetUpsert(true))
 	return err
+}
+
+func (a *Artifacts) ListVersions() ([]entities.ArtifactVersion, error) {
+	cursor, err := a.versionsCollection.Find(a.ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	var versions []entities.ArtifactVersion
+	if err := cursor.All(a.ctx, &versions); err != nil {
+		return nil, err
+	}
+
+	return versions, cursor.Close(a.ctx)
 }
