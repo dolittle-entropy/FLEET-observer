@@ -29,18 +29,8 @@ func StartAllObservers(factory informers.SharedInformerFactory, repositories *mo
 	replicasets := kubernetes.NewObserver("replicasets", factory.Apps().V1().ReplicaSets().Informer(), logger)
 	replicasets.Start(replicasetsHandler, stop)
 
-	configHandler := NewConfigHandler(
-		repositories.Configurations,
-		factory.Core().V1().ConfigMaps().Lister(),
-		factory.Core().V1().Secrets().Lister(),
-		logger,
-	)
-	configmaps := kubernetes.NewObserver("configmaps", factory.Core().V1().ConfigMaps().Informer(), logger)
-	configmaps.Start(configHandler, stop)
-	secrets := kubernetes.NewObserver("secrets", factory.Core().V1().Secrets().Informer(), logger)
-	secrets.Start(configHandler, stop)
-
 	podsHandler := NewPodsHandler(
+		repositories.Configurations,
 		repositories.Deployments,
 		factory.Core().V1().ConfigMaps().Lister(),
 		factory.Core().V1().Secrets().Lister(),
