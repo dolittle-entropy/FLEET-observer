@@ -50,26 +50,12 @@ func (rh *ReplicasetHandler) Handle(obj any) error {
 		return nil
 	}
 
-	var headContainer, runtimeContainer coreV1.Container
-	var hasHeadContainer, hasRuntimeContainer = false, false
-	for _, container := range replicaset.Spec.Template.Spec.Containers {
-		if container.Name == "head" {
-			headContainer = container
-			hasHeadContainer = true
-		}
-		if container.Name == "runtime" {
-			runtimeContainer = container
-			hasRuntimeContainer = true
-		}
-	}
-	if !hasHeadContainer {
-		logger.Trace().Msg("Skipping replicaset because it does not have a head container")
+	runtimeContainer, headContainer, ok := getRuntimeAndHeadContainer(replicaset.Spec.Template.Spec)
+	if !ok {
+		logger.Trace().Msg("Skipping replicaset because it does not have a runtime and head container")
 		return nil
 	}
-	if !hasRuntimeContainer {
-		logger.Trace().Msg("Skipping replicaset because it does not have a runtime container")
-		return nil
-	}
+
 	artifactVersionName := getArtifactVersionName(headContainer)
 	runtimeVersion, err := parseRuntimeVersion(runtimeContainer)
 	if err != nil {

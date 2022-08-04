@@ -52,6 +52,12 @@ func (ph *PodsHandler) Handle(obj any) error {
 		return nil
 	}
 
+	_, _, ok = getRuntimeAndHeadContainer(pod.Spec)
+	if !ok {
+		logger.Trace().Msg("Skipping pod because it does not have a runtime and head container")
+		return nil
+	}
+
 	var tenantsConfName, dolittleConfName, filesConfName, envConfName, envSecName string
 	var hasTenantsConf, hasDolittleConf, hasFilesConf, hasEnvConf, hasEnvSec bool
 
