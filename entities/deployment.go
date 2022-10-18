@@ -55,8 +55,9 @@ type DeploymentInstance struct {
 	Type string                `bson:"_type" json:"type"`
 
 	Properties struct {
-		ID      string    `bson:"id" json:"id"`
-		Started time.Time `bson:"started" json:"started"`
+		ID      string     `bson:"id" json:"id"`
+		Started time.Time  `bson:"started" json:"started"`
+		Stopped *time.Time `bson:"stopped" json:"stopped,omitempty"`
 	} `bson:"properties" json:"properties"`
 
 	Links struct {
@@ -70,12 +71,13 @@ func NewDeploymentInstanceUID(customerID, applicationID, environment, deployment
 	return DeploymentInstanceUID(fmt.Sprintf("%v/%v", NewDeploymentUID(customerID, applicationID, environment, deploymentID), deploymentInstanceID))
 }
 
-func NewDeploymentInstance(customerID, applicationID, environment, deploymentID, id string, started time.Time, artifact ArtifactConfiguration, runtime RuntimeConfiguration) DeploymentInstance {
+func NewDeploymentInstance(customerID, applicationID, environment, deploymentID, id string, started time.Time, stopped *time.Time, artifact ArtifactConfiguration, runtime RuntimeConfiguration) DeploymentInstance {
 	instance := DeploymentInstance{}
 	instance.UID = NewDeploymentInstanceUID(customerID, applicationID, environment, deploymentID, id)
 	instance.Type = DeploymentInstanceType
 	instance.Properties.ID = id
 	instance.Properties.Started = started
+	instance.Properties.Stopped = stopped
 	instance.Links.InstanceOfDeploymentUID = NewDeploymentUID(customerID, applicationID, environment, deploymentID)
 	instance.Links.UsesArtifactConfigurationUID = artifact.UID
 	instance.Links.UsesRuntimeConfigurationUID = runtime.UID

@@ -14,6 +14,7 @@ import (
 
 type Observer struct {
 	queue  workqueue.RateLimitingInterface
+	index  cache.Indexer
 	logger zerolog.Logger
 }
 
@@ -34,10 +35,14 @@ func NewObserver(name string, informer cache.SharedIndexInformer, logger zerolog
 
 			queue.Add(newObj)
 		},
+		DeleteFunc: queue.Add,
 	})
+
+	index := informer.GetIndexer()
 
 	return &Observer{
 		queue:  queue,
+		index:  index,
 		logger: logger,
 	}
 }
@@ -55,14 +60,27 @@ func (o *Observer) handleQueue(handler ObserverHandler) {
 			break
 		}
 
-		logger := o.logger
-		if meta, ok := item.(metaV1.Object); ok {
-			logger = logger.With().Str("namespace", meta.GetNamespace()).Str("name", meta.GetName()).Logger()
+		meta, ok := item.(metaV1.Object)
+		if !ok {
+			o.logger.Warn().Msg("Will skip handling of object without metadata")
 		}
 
+		namespace := meta.GetNamespace()
+		name := meta.GetName()
+
+		logger := o.logger.With().Str("namespace", namespace).Str("name", name).Logger()
 		logger.Debug().Msg("Handling item")
 
-		if err := handler.Handle(item); err != nil {
+		key := name
+		if len(namespace) > 0 {
+			key = namespace + "/" + name
+		}
+
+		_, exists, err := o.index.GetByKey(key)
+		if err != nil {
+			o.queue.AddRateLimited(item)
+			logger.Warn().Err(err).Msg("Failed to get item from index")
+		} else if err := handler.Handle(item, !exists); err != nil {
 			o.queue.AddRateLimited(item)
 			logger.Warn().Err(err).Msg("Error occurred while handling item")
 		} else {
@@ -83,16 +101,16 @@ func (o *Observer) shutdownWhenStopped(stopCh <-chan struct{}) {
 }
 
 type ObserverHandler interface {
-	Handle(obj any) error
+	Handle(obj any, deleted bool) error
 }
 
 type ObserverHandlerFuncs struct {
-	HandleFunc func(obj any) error
+	HandleFunc func(obj any, deleted bool) error
 }
 
-func (fs ObserverHandlerFuncs) Handle(obj any) error {
+func (fs ObserverHandlerFuncs) Handle(obj any, deleted bool) error {
 	if fs.HandleFunc != nil {
-		return fs.HandleFunc(obj)
+		return fs.HandleFunc(obj, deleted)
 	}
 	return nil
 }

@@ -16,6 +16,7 @@ import (
 	listersAppsV1 "k8s.io/client-go/listers/apps/v1"
 	listersCoreV1 "k8s.io/client-go/listers/core/v1"
 	"strings"
+	"time"
 )
 
 type PodsHandler struct {
@@ -38,7 +39,7 @@ func NewPodsHandler(configurations *mongo.Configurations, deployments *mongo.Dep
 	}
 }
 
-func (ph *PodsHandler) Handle(obj any) error {
+func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 	pod, ok := obj.(*coreV1.Pod)
 	if !ok {
 		return ReceivedWrongType(obj, "Pod")
@@ -170,6 +171,7 @@ func (ph *PodsHandler) Handle(obj any) error {
 		fmt.Sprintf("%v", replicaset.GetGeneration()),
 		string(pod.GetUID()),
 		pod.GetCreationTimestamp().UTC(),
+		ph.stoppedTime(deleted),
 		customerConfig,
 		runtimeConfig,
 	)
@@ -179,4 +181,13 @@ func (ph *PodsHandler) Handle(obj any) error {
 	logger.Debug().Interface("instance", instance).Msg("Updated deployment instance")
 
 	return nil
+}
+
+func (ph *PodsHandler) stoppedTime(deleted bool) *time.Time {
+	if !deleted {
+		return nil
+	}
+
+	now := time.Now().UTC()
+	return &now
 }

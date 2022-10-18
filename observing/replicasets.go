@@ -35,7 +35,7 @@ func NewReplicasetHandler(environments *mongo.Environments, artifacts *mongo.Art
 	}
 }
 
-func (rh *ReplicasetHandler) Handle(obj any) error {
+func (rh *ReplicasetHandler) Handle(obj any, _deleted bool) error {
 	replicaset, ok := obj.(*appsV1.ReplicaSet)
 	if !ok {
 		return ReceivedWrongType(obj, "ReplicaSet")

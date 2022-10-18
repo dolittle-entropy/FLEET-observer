@@ -26,7 +26,7 @@ func NewNamespacesHandler(customers *mongo.Customers, applications *mongo.Applic
 	}
 }
 
-func (nh *NamespacesHandler) Handle(obj any) error {
+func (nh *NamespacesHandler) Handle(obj any, _deleted bool) error {
 	namespace, ok := obj.(*coreV1.Namespace)
 	if !ok {
 		return ReceivedWrongType(obj, "Namespace")
