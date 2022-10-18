@@ -11,6 +11,7 @@ import (
 )
 
 type Repositories struct {
+	Nodes          *Nodes
 	Customers      *Customers
 	Applications   *Applications
 	Environments   *Environments
@@ -22,6 +23,7 @@ type Repositories struct {
 
 func NewRepositories(database *mongo.Database, ctx context.Context) *Repositories {
 	return &Repositories{
+		Nodes:          NewNodes(database, ctx),
 		Customers:      NewCustomers(database, ctx),
 		Applications:   NewApplications(database, ctx),
 		Environments:   NewEnvironments(database, ctx),

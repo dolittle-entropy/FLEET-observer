@@ -174,6 +174,7 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 		ph.stoppedTime(deleted),
 		customerConfig,
 		runtimeConfig,
+		pod.Spec.NodeName,
 	)
 	if err := ph.deployments.SetInstance(instance); err != nil {
 		return err

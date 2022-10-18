@@ -16,6 +16,13 @@ import (
 func StartAllObservers(factory informers.SharedInformerFactory, repositories *mongo.Repositories, logger zerolog.Logger, ctx context.Context) {
 	stop := ctx.Done()
 
+	nodesHandler := NewNodesHandler(
+		repositories.Nodes,
+		logger,
+	)
+	nodes := kubernetes.NewObserver("nodes", factory.Core().V1().Nodes().Informer(), logger)
+	nodes.Start(nodesHandler, stop)
+
 	namespacesHandler := NewNamespacesHandler(
 		repositories.Customers,
 		repositories.Applications,

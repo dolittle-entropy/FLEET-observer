@@ -41,6 +41,16 @@ func (e *Exporter) ExportToFile(path string) error {
 
 	var data []any
 
+	nodes, err := e.repositories.Nodes.List()
+	if err != nil {
+		e.logger.Error().Err(err).Msg("Failed to get nodes")
+		return err
+	}
+	for _, node := range nodes {
+		node.UID = entities.NodeUID(fmt.Sprintf("%v:%v", entities.NodeType, node.UID))
+		data = append(data, node)
+	}
+
 	customers, err := e.repositories.Customers.List()
 	if err != nil {
 		e.logger.Error().Err(err).Msg("Failed to get customers")
@@ -148,6 +158,7 @@ func (e *Exporter) ExportToFile(path string) error {
 		instance.Links.InstanceOfDeploymentUID = entities.DeploymentUID(fmt.Sprintf("%v:%v", entities.DeploymentType, instance.Links.InstanceOfDeploymentUID))
 		instance.Links.UsesArtifactConfigurationUID = entities.ArtifactConfigurationUID(fmt.Sprintf("%v:%v", entities.ArtifactConfigurationType, instance.Links.UsesArtifactConfigurationUID))
 		instance.Links.UsesRuntimeConfigurationUID = entities.RuntimeConfigurationUID(fmt.Sprintf("%v:%v", entities.RuntimeConfigurationType, instance.Links.UsesRuntimeConfigurationUID))
+		instance.Links.ScheduledOnNodeUID = entities.NodeUID(fmt.Sprintf("%v:%v", entities.NodeType, instance.Links.ScheduledOnNodeUID))
 		data = append(data, instance)
 	}
 
