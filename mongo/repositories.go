@@ -19,6 +19,7 @@ type Repositories struct {
 	Runtimes       *Runtimes
 	Deployments    *Deployments
 	Configurations *Configurations
+	Events         *Events
 }
 
 func NewRepositories(database *mongo.Database, ctx context.Context) *Repositories {
@@ -31,5 +32,6 @@ func NewRepositories(database *mongo.Database, ctx context.Context) *Repositorie
 		Runtimes:       NewRuntimes(database, ctx),
 		Deployments:    NewDeployments(database, ctx),
 		Configurations: NewConfigurations(database, ctx),
+		Events:         NewEvents(database, ctx),
 	}
 }

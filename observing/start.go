@@ -51,4 +51,13 @@ func StartAllObservers(factory informers.SharedInformerFactory, repositories *mo
 	)
 	pods := kubernetes.NewObserver("pods", factory.Core().V1().Pods().Informer(), logger)
 	pods.Start(podsHandler, stop)
+
+	eventsHandler := NewEventsHandler(
+		repositories.Events,
+		factory.Core().V1().Pods().Lister(),
+		factory.Apps().V1().ReplicaSets().Lister(),
+		logger,
+	)
+	events := kubernetes.NewObserver("events", factory.Core().V1().Events().Informer(), logger)
+	events.Start(eventsHandler, stop)
 }

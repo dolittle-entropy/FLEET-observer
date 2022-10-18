@@ -162,6 +162,17 @@ func (e *Exporter) ExportToFile(path string) error {
 		data = append(data, instance)
 	}
 
+	events, err := e.repositories.Events.List()
+	if err != nil {
+		e.logger.Error().Err(err).Msg("Failed to get events")
+		return err
+	}
+	for _, event := range events {
+		event.UID = entities.EventUID(fmt.Sprintf("%v:%v", event.Type, event.UID))
+		event.Links.HappenedToDeploymentInstanceUID = entities.DeploymentInstanceUID(fmt.Sprintf("%v:%v", entities.DeploymentInstanceType, event.Links.HappenedToDeploymentInstanceUID))
+		data = append(data, event)
+	}
+
 	e.logger.Info().Msg("Writing to file...")
 	for _, entry := range data {
 		encoded, err := json.Marshal(entry)

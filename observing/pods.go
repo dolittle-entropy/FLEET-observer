@@ -126,18 +126,9 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 	customerConfigHasher.WriteConfigMap(envConfig)
 	customerConfigHasher.WriteSecret(envSecret)
 
-	var replicaset *appsV1.ReplicaSet
-	hasReplicaset := false
-	for _, owner := range pod.GetOwnerReferences() {
-		if owner.Kind == "ReplicaSet" {
-			if replicaset, err = ph.replicasets.ReplicaSets(pod.GetNamespace()).Get(owner.Name); err == nil {
-				hasReplicaset = true
-				break
-			}
-		}
-	}
-	if !hasReplicaset {
-		return PodOwnerNotFound
+	replicaset, err := GetPodOwner(pod, ph.replicasets)
+	if err != nil {
+		return err
 	}
 
 	runtimeConfig := entities.NewRuntimeConfiguration(
@@ -191,4 +182,15 @@ func (ph *PodsHandler) stoppedTime(deleted bool) *time.Time {
 
 	now := time.Now().UTC()
 	return &now
+}
+
+func GetPodOwner(pod *coreV1.Pod, replicasets listersAppsV1.ReplicaSetLister) (*appsV1.ReplicaSet, error) {
+	for _, owner := range pod.GetOwnerReferences() {
+		if owner.Kind == "ReplicaSet" {
+			if replicaset, err := replicasets.ReplicaSets(pod.GetNamespace()).Get(owner.Name); err == nil {
+				return replicaset, nil
+			}
+		}
+	}
+	return nil, PodOwnerNotFound
 }
