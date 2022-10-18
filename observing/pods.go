@@ -22,16 +22,18 @@ import (
 type PodsHandler struct {
 	configurations *mongo.Configurations
 	deployments    *mongo.Deployments
+	events         *mongo.Events
 	configmaps     listersCoreV1.ConfigMapLister
 	secrets        listersCoreV1.SecretLister
 	replicasets    listersAppsV1.ReplicaSetLister
 	logger         zerolog.Logger
 }
 
-func NewPodsHandler(configurations *mongo.Configurations, deployments *mongo.Deployments, configmaps listersCoreV1.ConfigMapLister, secrets listersCoreV1.SecretLister, replicasets listersAppsV1.ReplicaSetLister, logger zerolog.Logger) *PodsHandler {
+func NewPodsHandler(configurations *mongo.Configurations, deployments *mongo.Deployments, events *mongo.Events, configmaps listersCoreV1.ConfigMapLister, secrets listersCoreV1.SecretLister, replicasets listersAppsV1.ReplicaSetLister, logger zerolog.Logger) *PodsHandler {
 	return &PodsHandler{
 		configurations: configurations,
 		deployments:    deployments,
+		events:         events,
 		configmaps:     configmaps,
 		secrets:        secrets,
 		replicasets:    replicasets,
@@ -155,6 +157,13 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 	}
 	logger.Debug().Interface("config", customerConfig).Msg("Updated customer configuration")
 
+	instanceID := entities.NewDeploymentInstanceUID(
+		tenantID,
+		applicationID,
+		environmentName,
+		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		string(pod.GetUID()),
+	)
 	instance := entities.NewDeploymentInstance(
 		tenantID,
 		applicationID,
@@ -172,7 +181,85 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 	}
 	logger.Debug().Interface("instance", instance).Msg("Updated deployment instance")
 
+	return ph.handlePodRestarts(instanceID, pod, logger)
+}
+
+func (ph *PodsHandler) handlePodRestarts(id entities.DeploymentInstanceUID, pod *coreV1.Pod, logger zerolog.Logger) error {
+	platformRestart := ph.getRestartsEventFor(id, pod, true, func(status coreV1.ContainerStatus) bool {
+		return status.Name == "runtime"
+	})
+	if platformRestart.Properties.Count > 0 {
+		if err := ph.updateRestartEvent(platformRestart); err != nil {
+			return err
+		}
+		logger.Debug().Interface("event", platformRestart).Msg("Updated event")
+	}
+
+	customerRestart := ph.getRestartsEventFor(id, pod, false, func(status coreV1.ContainerStatus) bool {
+		return status.Name != "runtime"
+	})
+	if customerRestart.Properties.Count > 0 {
+		if err := ph.updateRestartEvent(customerRestart); err != nil {
+			return err
+		}
+		logger.Debug().Interface("event", customerRestart).Msg("Updated event")
+	}
+
 	return nil
+}
+
+func (ph *PodsHandler) getRestartsEventFor(id entities.DeploymentInstanceUID, pod *coreV1.Pod, platform bool, predicate func(status coreV1.ContainerStatus) bool) entities.Event {
+	event := entities.NewRestartEvent(string(pod.GetUID()), 0, time.Now().UTC(), time.Time{}.UTC(), platform, id)
+
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.RestartCount > 0 && (status.State.Terminated != nil || status.LastTerminationState.Terminated != nil) && predicate(status) {
+			event.Properties.Count += int(status.RestartCount)
+
+			if status.LastTerminationState.Terminated != nil {
+				terminated := status.LastTerminationState.Terminated.FinishedAt.UTC()
+				if terminated.Before(event.Properties.FirstTime) {
+					event.Properties.FirstTime = terminated
+				}
+			} else {
+				terminated := status.State.Terminated.FinishedAt.UTC()
+				if terminated.Before(event.Properties.FirstTime) {
+					event.Properties.FirstTime = terminated
+				}
+			}
+
+			if status.State.Terminated != nil {
+				terminated := status.State.Terminated.FinishedAt.UTC()
+				if terminated.After(event.Properties.LastTime) {
+					event.Properties.LastTime = terminated
+				}
+			} else {
+				terminated := status.LastTerminationState.Terminated.FinishedAt.UTC()
+				if terminated.After(event.Properties.LastTime) {
+					event.Properties.LastTime = terminated
+				}
+			}
+		}
+	}
+
+	return event
+}
+
+func (ph *PodsHandler) updateRestartEvent(event entities.Event) error {
+	oldEvent, exists, err := ph.events.Get(event.UID)
+	if err != nil {
+		return err
+	}
+
+	if exists && oldEvent.Properties.Count < event.Properties.Count {
+		if oldEvent.Properties.FirstTime.Before(event.Properties.FirstTime) {
+			event.Properties.FirstTime = oldEvent.Properties.FirstTime
+		}
+		if oldEvent.Properties.LastTime.After(event.Properties.LastTime) {
+			event.Properties.LastTime = oldEvent.Properties.LastTime
+		}
+	}
+
+	return ph.events.Set(event)
 }
 
 func (ph *PodsHandler) stoppedTime(deleted bool) *time.Time {

@@ -31,6 +31,24 @@ func (e *Events) Set(event entities.Event) error {
 	return err
 }
 
+func (e *Events) Get(id entities.EventUID) (*entities.Event, bool, error) {
+	result := e.collection.FindOne(e.ctx, bson.D{{"_id", id}})
+	err := result.Err()
+	if err == mongo.ErrNoDocuments {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, true, err
+	}
+
+	event := &entities.Event{}
+	err = result.Decode(event)
+	if err != nil {
+		return nil, true, err
+	}
+
+	return event, true, nil
+}
+
 func (e *Events) List() ([]entities.Event, error) {
 	cursor, err := e.collection.Find(e.ctx, bson.D{})
 	if err != nil {

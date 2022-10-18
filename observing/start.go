@@ -44,6 +44,7 @@ func StartAllObservers(factory informers.SharedInformerFactory, repositories *mo
 	podsHandler := NewPodsHandler(
 		repositories.Configurations,
 		repositories.Deployments,
+		repositories.Events,
 		factory.Core().V1().ConfigMaps().Lister(),
 		factory.Core().V1().Secrets().Lister(),
 		factory.Apps().V1().ReplicaSets().Lister(),

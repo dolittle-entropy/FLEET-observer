@@ -71,3 +71,25 @@ func NewFailedToPullEvent(eventID string, count int, firstTime, lastTime time.Ti
 		instance,
 	)
 }
+
+var RestartEvent = "RestartEvent"
+
+func NewKubernetesRestartEventUID(podID string, platform bool) EventUID {
+	component := "customer"
+	if platform {
+		component = "platform"
+	}
+	return EventUID(fmt.Sprintf("kubernetes/pod/%v/restart/%v", podID, component))
+}
+
+func NewRestartEvent(podID string, count int, firstTime, lastTime time.Time, platform bool, instance DeploymentInstanceUID) Event {
+	return newEvent(
+		NewKubernetesRestartEventUID(podID, platform),
+		RestartEvent,
+		count,
+		firstTime,
+		lastTime,
+		platform,
+		instance,
+	)
+}
