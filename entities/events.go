@@ -25,7 +25,7 @@ type Event struct {
 
 	Links struct {
 		HappenedToDeploymentInstanceUID DeploymentInstanceUID `bson:"happened_to_deployment_instance_uid" json:"happenedTo"`
-	}
+	} `bson:"links" json:"links"`
 }
 
 func newEvent(id EventUID, eventType string, count int, firstTime, lastTime time.Time, platform bool, instance DeploymentInstanceUID) Event {
