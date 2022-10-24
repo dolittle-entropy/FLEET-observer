@@ -10,6 +10,7 @@ import (
 	"dolittle.io/fleet-observer/config"
 	"dolittle.io/fleet-observer/kubernetes"
 	"dolittle.io/fleet-observer/observing"
+	"dolittle.io/fleet-observer/storage"
 	"dolittle.io/fleet-observer/storage/mongo"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/informers"
@@ -32,6 +33,11 @@ var observe = &cobra.Command{
 		factory := informers.NewSharedInformerFactory(client, config.Duration("kubernetes.sync-interval"))
 
 		ctx := ContextFromSignals(logger)
+
+		_, err = storage.Connect(config, logger, ctx)
+		if err != nil {
+			return err
+		}
 
 		database, err := mongo.ConnectToMongo(config, logger, ctx)
 		if err != nil {
