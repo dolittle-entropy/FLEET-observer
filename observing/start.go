@@ -8,7 +8,7 @@ package observing
 import (
 	"context"
 	"dolittle.io/fleet-observer/kubernetes"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage/mongo"
 	"github.com/rs/zerolog"
 	"k8s.io/client-go/informers"
 )

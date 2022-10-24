@@ -25,6 +25,7 @@ func init() {
 	root.PersistentFlags().String("logger.format", "console", "The logging format to use, 'json' or 'console'")
 	root.PersistentFlags().String("logger.level", "info", "The logging minimum log level to output")
 	root.PersistentFlags().String("mongodb.connection-string", "mongodb://localhost:27017/observer", "The connection string to MongoDB")
+	root.PersistentFlags().String("neo4j.connection-string", "", "The connection string string to Neo4j")
 
 	root.AddCommand(observe)
 	root.AddCommand(drop)

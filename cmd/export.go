@@ -8,7 +8,7 @@ package cmd
 import (
 	"dolittle.io/fleet-observer/config"
 	"dolittle.io/fleet-observer/exporting"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage/mongo"
 	"github.com/spf13/cobra"
 )
 

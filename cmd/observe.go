@@ -9,8 +9,8 @@ import (
 	"context"
 	"dolittle.io/fleet-observer/config"
 	"dolittle.io/fleet-observer/kubernetes"
-	"dolittle.io/fleet-observer/mongo"
 	"dolittle.io/fleet-observer/observing"
+	"dolittle.io/fleet-observer/storage/mongo"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/informers"
 )

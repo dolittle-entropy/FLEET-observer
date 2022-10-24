@@ -7,7 +7,7 @@ package observing
 
 import (
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage/mongo"
 	"github.com/rs/zerolog"
 	coreV1 "k8s.io/api/core/v1"
 )

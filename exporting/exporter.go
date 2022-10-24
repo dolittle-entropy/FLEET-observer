@@ -8,7 +8,7 @@ package exporting
 import (
 	"context"
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage/mongo"
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog"
