@@ -7,7 +7,7 @@ package observing
 
 import (
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/storage/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"fmt"
 	"github.com/rs/zerolog"
 	appsV1 "k8s.io/api/apps/v1"
@@ -18,14 +18,14 @@ import (
 )
 
 type ReplicasetHandler struct {
-	environments *mongo.Environments
-	artifacts    *mongo.Artifacts
-	runtimes     *mongo.Runtimes
-	deployments  *mongo.Deployments
+	environments storage.Environments
+	artifacts    storage.Artifacts
+	runtimes     storage.Runtimes
+	deployments  storage.Deployments
 	logger       zerolog.Logger
 }
 
-func NewReplicasetHandler(environments *mongo.Environments, artifacts *mongo.Artifacts, runtimes *mongo.Runtimes, deployments *mongo.Deployments, logger zerolog.Logger) *ReplicasetHandler {
+func NewReplicasetHandler(environments storage.Environments, artifacts storage.Artifacts, runtimes storage.Runtimes, deployments storage.Deployments, logger zerolog.Logger) *ReplicasetHandler {
 	return &ReplicasetHandler{
 		environments: environments,
 		artifacts:    artifacts,

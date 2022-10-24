@@ -7,17 +7,17 @@ package observing
 
 import (
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/storage/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"github.com/rs/zerolog"
 	coreV1 "k8s.io/api/core/v1"
 )
 
 type NodesHandler struct {
-	nodes  *mongo.Nodes
+	nodes  storage.Nodes
 	logger zerolog.Logger
 }
 
-func NewNodesHandler(nodes *mongo.Nodes, logger zerolog.Logger) *NodesHandler {
+func NewNodesHandler(nodes storage.Nodes, logger zerolog.Logger) *NodesHandler {
 	return &NodesHandler{
 		nodes:  nodes,
 		logger: logger.With().Str("handler", "nodes").Logger(),

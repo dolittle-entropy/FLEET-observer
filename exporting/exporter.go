@@ -8,7 +8,7 @@ package exporting
 import (
 	"context"
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/storage/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog"
@@ -16,12 +16,12 @@ import (
 )
 
 type Exporter struct {
-	repositories *mongo.Repositories
+	repositories *storage.Repositories
 	logger       zerolog.Logger
 	ctx          context.Context
 }
 
-func NewExporter(repositories *mongo.Repositories, logger zerolog.Logger, ctx context.Context) *Exporter {
+func NewExporter(repositories *storage.Repositories, logger zerolog.Logger, ctx context.Context) *Exporter {
 	return &Exporter{
 		repositories: repositories,
 		logger:       logger,

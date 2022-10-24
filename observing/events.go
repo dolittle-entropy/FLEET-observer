@@ -7,7 +7,7 @@ package observing
 
 import (
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/storage/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"fmt"
 	"github.com/rs/zerolog"
 	coreV1 "k8s.io/api/core/v1"
@@ -18,13 +18,13 @@ import (
 )
 
 type EventsHandler struct {
-	events      *mongo.Events
+	events      storage.Events
 	pods        listersCoreV1.PodLister
 	replicasets listersAppsV1.ReplicaSetLister
 	logger      zerolog.Logger
 }
 
-func NewEventsHandler(events *mongo.Events, pods listersCoreV1.PodLister, replicasets listersAppsV1.ReplicaSetLister, logger zerolog.Logger) *EventsHandler {
+func NewEventsHandler(events storage.Events, pods listersCoreV1.PodLister, replicasets listersAppsV1.ReplicaSetLister, logger zerolog.Logger) *EventsHandler {
 	return &EventsHandler{
 		events:      events,
 		pods:        pods,
