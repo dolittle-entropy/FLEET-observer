@@ -28,9 +28,16 @@ func (r *Runtimes) SetVersion(version entities.RuntimeVersion) error {
 	if version.Properties.Prerelease != "" {
 		prerelease = version.Properties.Prerelease
 	}
-	return runUpdate(
+	return multiUpdate(
 		r.session,
 		r.ctx,
+		map[string]any{
+			"uid":        version.UID,
+			"major":      version.Properties.Major,
+			"minor":      version.Properties.Minor,
+			"patch":      version.Properties.Patch,
+			"prerelease": prerelease,
+		},
 		`
 			MERGE (version:RuntimeVersion { _uid: $uid })
 			SET version = {
@@ -41,19 +48,12 @@ func (r *Runtimes) SetVersion(version entities.RuntimeVersion) error {
 				prerelease: $prerelease
 			}
 			RETURN id(version)
-		`,
-		map[string]any{
-			"uid":        version.UID,
-			"major":      version.Properties.Major,
-			"minor":      version.Properties.Minor,
-			"patch":      version.Properties.Patch,
-			"prerelease": prerelease,
-		})
+		`)
 }
 
 func (r *Runtimes) ListVersions() ([]entities.RuntimeVersion, error) {
 	var versions []entities.RuntimeVersion
-	return versions, querySingleJson(
+	return versions, findAllJson(
 		r.session,
 		r.ctx,
 		`

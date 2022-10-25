@@ -24,25 +24,25 @@ func NewNodes(session neo4j.SessionWithContext, ctx context.Context) *Nodes {
 }
 
 func (n *Nodes) Set(node entities.Node) error {
-	return runUpdate(
+	return multiUpdate(
 		n.session,
 		n.ctx,
-		`
-			MERGE (node:Node { _uid: $uid })
-			SET node = { _uid: $uid, hostname: $hostname, image: $image, type: $type }
-			RETURN id(node)
-		`,
 		map[string]any{
 			"uid":      node.UID,
 			"hostname": node.Properties.Hostname,
 			"image":    node.Properties.Image,
 			"type":     node.Properties.Type,
-		})
+		},
+		`
+			MERGE (node:Node { _uid: $uid })
+			SET node = { _uid: $uid, hostname: $hostname, image: $image, type: $type }
+			RETURN id(node)
+		`)
 }
 
 func (n *Nodes) List() ([]entities.Node, error) {
 	var nodes []entities.Node
-	return nodes, querySingleJson(
+	return nodes, findAllJson(
 		n.session,
 		n.ctx,
 		`

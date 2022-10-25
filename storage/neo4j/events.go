@@ -25,7 +25,7 @@ func NewEvents(session neo4j.SessionWithContext, ctx context.Context) *Events {
 }
 
 func (e *Events) Set(event entities.Event) error {
-	return runMultiUpdate(
+	return multiUpdate(
 		e.session,
 		e.ctx,
 		map[string]any{
@@ -86,7 +86,7 @@ func (e *Events) Get(id entities.EventUID) (*entities.Event, bool, error) {
 
 func (e *Events) List() ([]entities.Event, error) {
 	var events []entities.Event
-	return events, querySingleJson(
+	return events, findAllJson(
 		e.session,
 		e.ctx,
 		`

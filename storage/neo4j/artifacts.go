@@ -24,12 +24,21 @@ func NewArtifacts(session neo4j.SessionWithContext, ctx context.Context) *Artifa
 }
 
 func (a *Artifacts) Set(artifact entities.Artifact) error {
-	return runUpdate(
+	return multiUpdate(
 		a.session,
 		a.ctx,
+		map[string]any{
+			"uid":               artifact.UID,
+			"id":                artifact.Properties.ID,
+			"link_customer_uid": artifact.Links.DevelopedByCustomerUID,
+		},
 		`
 			MERGE (artifact:Artifact { _uid: $uid })
 			SET artifact = { _uid: $uid, id: $id }
+			RETURN id(artifact)
+		`,
+		`
+			MATCH (artifact:Artifact { _uid: $uid })
 			WITH artifact
 				MERGE (customer:Customer { _uid: $link_customer_uid})
 				WITH artifact, customer
@@ -39,17 +48,12 @@ func (a *Artifacts) Set(artifact entities.Artifact) error {
 						WHERE other._uid <> customer._uid
 						DELETE r
 			RETURN id(artifact)
-		`,
-		map[string]any{
-			"uid":               artifact.UID,
-			"id":                artifact.Properties.ID,
-			"link_customer_uid": artifact.Links.DevelopedByCustomerUID,
-		})
+		`)
 }
 
 func (a *Artifacts) List() ([]entities.Artifact, error) {
 	var artifacts []entities.Artifact
-	return artifacts, querySingleJson(
+	return artifacts, findAllJson(
 		a.session,
 		a.ctx,
 		`
@@ -70,12 +74,21 @@ func (a *Artifacts) List() ([]entities.Artifact, error) {
 }
 
 func (a *Artifacts) SetVersion(version entities.ArtifactVersion) error {
-	return runUpdate(
+	return multiUpdate(
 		a.session,
 		a.ctx,
+		map[string]any{
+			"uid":               version.UID,
+			"name":              version.Properties.Name,
+			"link_artifact_uid": version.Links.VersionOfArtifactUID,
+		},
 		`
 			MERGE (version:ArtifactVersion { _uid: $uid })
 			SET version = { _uid: $uid, name: $name }
+			RETURN id(version)
+		`,
+		`
+			MATCH (version:ArtifactVersion { _uid: $uid })
 			WITH version
 				MERGE (artifact:Artifact { _uid: $link_artifact_uid})
 				WITH version, artifact
@@ -85,17 +98,12 @@ func (a *Artifacts) SetVersion(version entities.ArtifactVersion) error {
 						WHERE other._uid <> artifact._uid
 						DELETE r
 			RETURN id(version)
-		`,
-		map[string]any{
-			"uid":               version.UID,
-			"name":              version.Properties.Name,
-			"link_artifact_uid": version.Links.VersionOfArtifactUID,
-		})
+		`)
 }
 
 func (a *Artifacts) ListVersions() ([]entities.ArtifactVersion, error) {
 	var versions []entities.ArtifactVersion
-	return versions, querySingleJson(
+	return versions, findAllJson(
 		a.session,
 		a.ctx,
 		`

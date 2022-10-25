@@ -24,23 +24,23 @@ func NewConfigurations(session neo4j.SessionWithContext, ctx context.Context) *C
 }
 
 func (c *Configurations) SetArtifact(config entities.ArtifactConfiguration) error {
-	return runUpdate(
+	return multiUpdate(
 		c.session,
 		c.ctx,
+		map[string]any{
+			"uid":  config.UID,
+			"hash": config.Properties.ContentHash,
+		},
 		`
 			MERGE (config:ArtifactConfiguration { _uid: $uid })
 			SET config = { _uid: $uid, hash: $hash }
 			RETURN id(config)
-		`,
-		map[string]any{
-			"uid":  config.UID,
-			"hash": config.Properties.ContentHash,
-		})
+		`)
 }
 
 func (c *Configurations) ListArtifacts() ([]entities.ArtifactConfiguration, error) {
 	var configs []entities.ArtifactConfiguration
-	return configs, querySingleJson(
+	return configs, findAllJson(
 		c.session,
 		c.ctx,
 		`
@@ -58,24 +58,23 @@ func (c *Configurations) ListArtifacts() ([]entities.ArtifactConfiguration, erro
 }
 
 func (c *Configurations) SetRuntime(config entities.RuntimeConfiguration) error {
-	return runUpdate(
+	return multiUpdate(
 		c.session,
 		c.ctx,
+		map[string]any{
+			"uid":  config.UID,
+			"hash": config.Properties.ContentHash,
+		},
 		`
 			MERGE (config:RuntimeConfiguration { _uid: $uid })
 			SET config = { _uid: $uid, hash: $hash }
 			RETURN id(config)
-		`,
-		map[string]any{
-			"uid":  config.UID,
-			"hash": config.Properties.ContentHash,
-		})
-	return nil
+		`)
 }
 
 func (c *Configurations) ListRuntimes() ([]entities.RuntimeConfiguration, error) {
 	var configs []entities.RuntimeConfiguration
-	return configs, querySingleJson(
+	return configs, findAllJson(
 		c.session,
 		c.ctx,
 		`

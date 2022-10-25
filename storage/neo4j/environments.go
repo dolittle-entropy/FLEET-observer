@@ -24,12 +24,21 @@ func NewEnvironments(session neo4j.SessionWithContext, ctx context.Context) *Env
 }
 
 func (e *Environments) Set(environment entities.Environment) error {
-	return runUpdate(
+	return multiUpdate(
 		e.session,
 		e.ctx,
+		map[string]any{
+			"uid":                  environment.UID,
+			"name":                 environment.Properties.Name,
+			"link_application_uid": environment.Links.EnvironmentOfApplicationUID,
+		},
 		`
 			MERGE (environment:Environment { _uid: $uid })
 			SET environment = { _uid: $uid, name: $name }
+			RETURN id(environment)
+		`,
+		`
+			MATCH (environment:Environment { _uid: $uid })
 			WITH environment
 				MERGE (application:Application { _uid: $link_application_uid })
 				WITH environment, application
@@ -39,17 +48,12 @@ func (e *Environments) Set(environment entities.Environment) error {
 						WHERE other._uid <> application._uid
 						DELETE r
 			RETURN id(environment)
-		`,
-		map[string]any{
-			"uid":                  environment.UID,
-			"name":                 environment.Properties.Name,
-			"link_application_uid": environment.Links.EnvironmentOfApplicationUID,
-		})
+		`)
 }
 
 func (e *Environments) List() ([]entities.Environment, error) {
 	var environments []entities.Environment
-	return environments, querySingleJson(
+	return environments, findAllJson(
 		e.session,
 		e.ctx,
 		`

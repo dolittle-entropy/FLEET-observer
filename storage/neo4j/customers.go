@@ -24,24 +24,24 @@ func NewCustomers(session neo4j.SessionWithContext, ctx context.Context) *Custom
 }
 
 func (c *Customers) Set(customer entities.Customer) error {
-	return runUpdate(
+	return multiUpdate(
 		c.session,
 		c.ctx,
-		`
-			MERGE (customer:Customer { _uid: $uid })
-			SET customer = { _uid: $uid, id: $id, name: $name }
-			RETURN id(customer)
-		`,
 		map[string]any{
 			"uid":  customer.UID,
 			"id":   customer.Properties.ID,
 			"name": customer.Properties.Name,
-		})
+		},
+		`
+			MERGE (customer:Customer { _uid: $uid })
+			SET customer = { _uid: $uid, id: $id, name: $name }
+			RETURN id(customer)
+		`)
 }
 
 func (c *Customers) List() ([]entities.Customer, error) {
 	var customers []entities.Customer
-	return customers, querySingleJson(
+	return customers, findAllJson(
 		c.session,
 		c.ctx,
 		`

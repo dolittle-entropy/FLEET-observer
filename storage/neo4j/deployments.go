@@ -25,7 +25,7 @@ func NewDeployments(session neo4j.SessionWithContext, ctx context.Context) *Depl
 }
 
 func (d *Deployments) Set(deployment entities.Deployment) error {
-	return runMultiUpdate(
+	return multiUpdate(
 		d.session,
 		d.ctx,
 		map[string]any{
@@ -81,7 +81,7 @@ func (d *Deployments) Set(deployment entities.Deployment) error {
 
 func (d *Deployments) List() ([]entities.Deployment, error) {
 	var deployments []entities.Deployment
-	return deployments, querySingleJson(
+	return deployments, findAllJson(
 		d.session,
 		d.ctx,
 		`
@@ -113,7 +113,7 @@ func (d *Deployments) SetInstance(instance entities.DeploymentInstance) error {
 	if instance.Properties.Stopped != nil {
 		stopped = instance.Properties.Stopped.Format(time.RFC3339)
 	}
-	return runMultiUpdate(
+	return multiUpdate(
 		d.session,
 		d.ctx,
 		map[string]any{
@@ -183,7 +183,7 @@ func (d *Deployments) SetInstance(instance entities.DeploymentInstance) error {
 
 func (d *Deployments) ListInstances() ([]entities.DeploymentInstance, error) {
 	var instances []entities.DeploymentInstance
-	return instances, querySingleJson(
+	return instances, findAllJson(
 		d.session,
 		d.ctx,
 		`

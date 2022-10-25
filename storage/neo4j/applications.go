@@ -24,12 +24,21 @@ func NewApplications(session neo4j.SessionWithContext, ctx context.Context) *App
 }
 
 func (a *Applications) Set(application entities.Application) error {
-	return runUpdate(
+	return multiUpdate(
 		a.session,
 		a.ctx,
+		map[string]any{
+			"uid":               application.UID,
+			"id":                application.Properties.ID,
+			"name":              application.Properties.Name,
+			"link_customer_uid": application.Links.OwnedByCustomerUID,
+		},
 		`
 			MERGE (application:Application { _uid: $uid })
 			SET application = { _uid: $uid, id: $id, name: $name }
+			RETURN id(application)
+		`, `
+			MATCH (application:Application { _uid: $uid })
 			WITH application
 				MERGE (customer:Customer { _uid: $link_customer_uid})
 				WITH application, customer
@@ -39,18 +48,12 @@ func (a *Applications) Set(application entities.Application) error {
 						WHERE other._uid <> customer._uid
 						DELETE r
 			RETURN id(application)
-		`,
-		map[string]any{
-			"uid":               application.UID,
-			"id":                application.Properties.ID,
-			"name":              application.Properties.Name,
-			"link_customer_uid": application.Links.OwnedByCustomerUID,
-		})
+		`)
 }
 
 func (a *Applications) List() ([]entities.Application, error) {
 	var applications []entities.Application
-	return applications, querySingleJson(
+	return applications, findAllJson(
 		a.session,
 		a.ctx,
 		`
