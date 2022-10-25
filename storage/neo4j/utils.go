@@ -27,6 +27,27 @@ func runUpdate(session neo4j.SessionWithContext, ctx context.Context, cypher str
 	return err
 }
 
+func runMultiUpdate(session neo4j.SessionWithContext, ctx context.Context, params map[string]any, cyphers ...string) error {
+	_, err := session.ExecuteWrite(
+		ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			for _, cypher := range cyphers {
+				result, err := transaction.Run(ctx, cypher, params)
+				if err != nil {
+					return nil, err
+				}
+
+				_, err = result.Consume(ctx)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, nil
+		})
+	return err
+}
+
 func querySingleJson(session neo4j.SessionWithContext, ctx context.Context, cypher string, v any) error {
 	result, err := session.Run(ctx, cypher, nil)
 	if err != nil {
