@@ -8,9 +8,11 @@ package config
 import (
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 // LoadConfigFor loads the configuration using the given cobra.Command flags,
@@ -25,9 +27,17 @@ func LoadConfigFor(cmd *cobra.Command) (*koanf.Koanf, error) {
 		}
 	}
 
+	if err := k.Load(env.Provider("", k.Delim(), environmentVariableNameToKey), nil); err != nil {
+		return nil, err
+	}
+
 	if err := k.Load(posflag.Provider(cmd.Flags(), k.Delim(), k), nil); err != nil {
 		return nil, err
 	}
 
 	return k, nil
+}
+
+func environmentVariableNameToKey(name string) string {
+	return strings.Replace(strings.ToLower(name), "_", ".", -1)
 }

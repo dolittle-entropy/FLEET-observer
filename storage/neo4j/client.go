@@ -14,7 +14,18 @@ import (
 
 func ConnectToNeo4j(config *koanf.Koanf, logger zerolog.Logger, ctx context.Context) (neo4j.SessionWithContext, error) {
 	connectionString := config.String("neo4j.connection-string")
-	driver, err := neo4j.NewDriverWithContext(connectionString, neo4j.NoAuth())
+
+	auth := neo4j.NoAuth()
+	if config.String("neo4j.password") != "" {
+		auth = neo4j.BasicAuth(
+			config.String("neo4j.username"),
+			config.String("neo4j.password"),
+			"")
+	} else {
+		logger.Info().Msg("Neo4j password not set, no authentication will be used")
+	}
+
+	driver, err := neo4j.NewDriverWithContext(connectionString, auth)
 	if err != nil {
 		return nil, err
 	}
