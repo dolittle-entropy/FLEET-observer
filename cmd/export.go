@@ -8,7 +8,7 @@ package cmd
 import (
 	"dolittle.io/fleet-observer/config"
 	"dolittle.io/fleet-observer/exporting"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -23,12 +23,10 @@ var export = &cobra.Command{
 
 		ctx := ContextFromSignals(logger)
 
-		database, err := mongo.ConnectToMongo(config, logger, ctx)
+		repositories, err := storage.Connect(config, logger, ctx)
 		if err != nil {
 			return err
 		}
-
-		repositories := mongo.NewRepositories(database, ctx)
 
 		exporter := exporting.NewExporter(repositories, logger, ctx)
 		return exporter.ExportToFile(config.String("output"))

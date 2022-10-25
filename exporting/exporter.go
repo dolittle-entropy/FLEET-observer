@@ -8,7 +8,7 @@ package exporting
 import (
 	"context"
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog"
@@ -16,12 +16,12 @@ import (
 )
 
 type Exporter struct {
-	repositories *mongo.Repositories
+	repositories *storage.Repositories
 	logger       zerolog.Logger
 	ctx          context.Context
 }
 
-func NewExporter(repositories *mongo.Repositories, logger zerolog.Logger, ctx context.Context) *Exporter {
+func NewExporter(repositories *storage.Repositories, logger zerolog.Logger, ctx context.Context) *Exporter {
 	return &Exporter{
 		repositories: repositories,
 		logger:       logger,
@@ -130,7 +130,7 @@ func (e *Exporter) ExportToFile(path string) error {
 
 	artifactConfigs, err := e.repositories.Configurations.ListArtifacts()
 	if err != nil {
-		e.logger.Error().Err(err).Msg("Failed to get customers")
+		e.logger.Error().Err(err).Msg("Failed to get artifact configurations")
 		return err
 	}
 	for _, config := range artifactConfigs {
@@ -140,7 +140,7 @@ func (e *Exporter) ExportToFile(path string) error {
 
 	runtimeConfigs, err := e.repositories.Configurations.ListRuntimes()
 	if err != nil {
-		e.logger.Error().Err(err).Msg("Failed to get customers")
+		e.logger.Error().Err(err).Msg("Failed to get runtime configurations")
 		return err
 	}
 	for _, config := range runtimeConfigs {
@@ -150,7 +150,7 @@ func (e *Exporter) ExportToFile(path string) error {
 
 	instances, err := e.repositories.Deployments.ListInstances()
 	if err != nil {
-		e.logger.Error().Err(err).Msg("Failed to get deployments")
+		e.logger.Error().Err(err).Msg("Failed to get deployment instances")
 		return err
 	}
 	for _, instance := range instances {

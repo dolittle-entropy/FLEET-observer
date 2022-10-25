@@ -7,18 +7,18 @@ package observing
 
 import (
 	"dolittle.io/fleet-observer/entities"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"github.com/rs/zerolog"
 	coreV1 "k8s.io/api/core/v1"
 )
 
 type NamespacesHandler struct {
-	customers    *mongo.Customers
-	applications *mongo.Applications
+	customers    storage.Customers
+	applications storage.Applications
 	logger       zerolog.Logger
 }
 
-func NewNamespacesHandler(customers *mongo.Customers, applications *mongo.Applications, logger zerolog.Logger) *NamespacesHandler {
+func NewNamespacesHandler(customers storage.Customers, applications storage.Applications, logger zerolog.Logger) *NamespacesHandler {
 	return &NamespacesHandler{
 		customers:    customers,
 		applications: applications,

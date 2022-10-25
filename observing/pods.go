@@ -8,7 +8,7 @@ package observing
 import (
 	"dolittle.io/fleet-observer/entities"
 	"dolittle.io/fleet-observer/kubernetes"
-	"dolittle.io/fleet-observer/mongo"
+	"dolittle.io/fleet-observer/storage"
 	"fmt"
 	"github.com/rs/zerolog"
 	appsV1 "k8s.io/api/apps/v1"
@@ -20,16 +20,16 @@ import (
 )
 
 type PodsHandler struct {
-	configurations *mongo.Configurations
-	deployments    *mongo.Deployments
-	events         *mongo.Events
+	configurations storage.Configurations
+	deployments    storage.Deployments
+	events         storage.Events
 	configmaps     listersCoreV1.ConfigMapLister
 	secrets        listersCoreV1.SecretLister
 	replicasets    listersAppsV1.ReplicaSetLister
 	logger         zerolog.Logger
 }
 
-func NewPodsHandler(configurations *mongo.Configurations, deployments *mongo.Deployments, events *mongo.Events, configmaps listersCoreV1.ConfigMapLister, secrets listersCoreV1.SecretLister, replicasets listersAppsV1.ReplicaSetLister, logger zerolog.Logger) *PodsHandler {
+func NewPodsHandler(configurations storage.Configurations, deployments storage.Deployments, events storage.Events, configmaps listersCoreV1.ConfigMapLister, secrets listersCoreV1.SecretLister, replicasets listersAppsV1.ReplicaSetLister, logger zerolog.Logger) *PodsHandler {
 	return &PodsHandler{
 		configurations: configurations,
 		deployments:    deployments,

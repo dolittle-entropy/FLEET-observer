@@ -6,11 +6,10 @@
 package cmd
 
 import (
-	"context"
 	"dolittle.io/fleet-observer/config"
 	"dolittle.io/fleet-observer/kubernetes"
-	"dolittle.io/fleet-observer/mongo"
 	"dolittle.io/fleet-observer/observing"
+	"dolittle.io/fleet-observer/storage"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/informers"
 )
@@ -33,18 +32,15 @@ var observe = &cobra.Command{
 
 		ctx := ContextFromSignals(logger)
 
-		database, err := mongo.ConnectToMongo(config, logger, ctx)
+		repositories, err := storage.Connect(config, logger, ctx)
 		if err != nil {
 			return err
 		}
 
-		repositories := mongo.NewRepositories(database, ctx)
-
 		observing.StartAllObservers(factory, repositories, logger, ctx)
 		go factory.Start(ctx.Done())
 
-		WaitForStop(logger, ctx)
-		return database.Client().Disconnect(context.Background())
+		return WaitForStop(logger, ctx)
 	},
 }
 
