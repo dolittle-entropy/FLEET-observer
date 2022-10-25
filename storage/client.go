@@ -22,12 +22,22 @@ func Connect(config *koanf.Koanf, logger zerolog.Logger, ctx context.Context) (*
 	logger = logger.With().Str("component", "storage").Logger()
 	if config.String("neo4j.connection-string") != "" {
 		logger.Info().Msg("Using Neo4j for storage")
-		_, err := neo4j.ConnectToNeo4j(config, logger, ctx)
+		session, err := neo4j.ConnectToNeo4j(config, logger, ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		return &Repositories{}, nil
+		return &Repositories{
+			Nodes:          neo4j.NewNodes(session, ctx),
+			Customers:      neo4j.NewCustomers(session, ctx),
+			Applications:   neo4j.NewApplications(session, ctx),
+			Environments:   neo4j.NewEnvironments(session, ctx),
+			Artifacts:      neo4j.NewArtifacts(session, ctx),
+			Runtimes:       neo4j.NewRuntimes(session, ctx),
+			Deployments:    neo4j.NewDeployments(session, ctx),
+			Configurations: neo4j.NewConfigurations(session, ctx),
+			Events:         neo4j.NewEvents(session, ctx),
+		}, nil
 	}
 
 	if config.String("mongodb.connection-string") != "" {
