@@ -51,6 +51,32 @@ func (e *Environments) Set(environment entities.Environment) error {
 		`)
 }
 
+func (e *Environments) Get(id entities.EnvironmentUID) (*entities.Environment, bool, error) {
+	environment := &entities.Environment{}
+	found, err := findSingleJson(
+		e.session,
+		e.ctx,
+		map[string]any{
+			"uid": id,
+		},
+		`
+			MATCH (environment:Environment { _uid: $uid })-[:EnvironmentOf]->(application:Application)
+			WITH {
+				uid: environment._uid,
+				type: "Environment",
+				properties: {
+					name: environment.name
+				},
+				links: {
+					environmentOf: application._uid
+				}
+			} as entry
+			RETURN apoc.convert.toJson(entry) as json
+		`,
+		environment)
+	return environment, found, err
+}
+
 func (e *Environments) List() ([]entities.Environment, error) {
 	var environments []entities.Environment
 	return environments, findAllJson(

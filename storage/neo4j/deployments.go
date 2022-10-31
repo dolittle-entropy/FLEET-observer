@@ -80,6 +80,39 @@ func (d *Deployments) Set(deployment entities.Deployment) error {
 		`)
 }
 
+func (d *Deployments) Get(id entities.DeploymentUID) (*entities.Deployment, bool, error) {
+	deployment := &entities.Deployment{}
+	found, err := findSingleJson(
+		d.session,
+		d.ctx,
+		map[string]any{
+			"uid": id,
+		},
+		`
+			MATCH (deployment:Deployment { _uid: $uid })-[:DeployedIn]->(environment:Environment)
+			WITH deployment, environment
+				MATCH (deployment)-[:UsesArtifact]->(artifact:ArtifactVersion)
+			WITH deployment, environment, artifact
+				MATCH (deployment)-[:UsesRuntime]->(runtime:RuntimeVersion)
+			WITH {
+				uid: deployment._uid,
+				type: "Deployment",
+				properties: {
+					id: deployment.id,
+					created: toString(deployment.created)
+				},
+				links: {
+					deployedIn: environment._uid,
+					usesArtifact: artifact._uid,
+					usesRuntime: runtime._uid
+				}
+			} as entry
+			RETURN apoc.convert.toJson(entry) as json
+		`,
+		deployment)
+	return deployment, found, err
+}
+
 func (d *Deployments) List() ([]entities.Deployment, error) {
 	var deployments []entities.Deployment
 	return deployments, findAllJson(
@@ -189,6 +222,40 @@ func (d *Deployments) ListInstances() ([]entities.DeploymentInstance, error) {
 		d.ctx,
 		`
 			MATCH (instance:DeploymentInstance)-[:InstanceOf]->(deployment:Deployment)
+			WITH instance, deployment
+				MATCH (instance)-[:UsesArtifactConfiguration]->(artifact:ArtifactConfiguration)
+			WITH instance, deployment, artifact
+				MATCH (instance)-[:UsesRuntimeConfiguration]->(runtime:RuntimeConfiguration)
+			WITH instance, deployment, artifact, runtime
+				MATCH (instance)-[:ScheduledOn]->(node:Node)
+			WITH {
+				uid: instance._uid,
+				type: "DeploymentInstance",
+				properties: {
+					id: instance.id,
+					started: toString(instance.started),
+					stopped: toString(instance.stopped)
+				},
+				links: {
+					instanceOf: deployment._uid,
+					usesArtifactConfiguration: artifact._uid,
+					usesRuntimeConfiguration: runtime._uid,
+					scheduledOn: node._uid
+				}
+			} as entry
+			RETURN apoc.convert.toJson(collect(entry)) as json
+		`,
+		&instances)
+}
+
+func (d *Deployments) ListRunningInstances() ([]entities.DeploymentInstance, error) {
+	var instances []entities.DeploymentInstance
+	return instances, findAllJson(
+		d.session,
+		d.ctx,
+		`
+			MATCH (instance:DeploymentInstance)-[:InstanceOf]->(deployment:Deployment)
+			WHERE NOT exists(instance.stopped)
 			WITH instance, deployment
 				MATCH (instance)-[:UsesArtifactConfiguration]->(artifact:ArtifactConfiguration)
 			WITH instance, deployment, artifact

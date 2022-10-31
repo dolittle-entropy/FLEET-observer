@@ -31,6 +31,24 @@ func (e *Environments) Set(environment entities.Environment) error {
 	return err
 }
 
+func (e *Environments) Get(id entities.EnvironmentUID) (*entities.Environment, bool, error) {
+	result := e.collection.FindOne(e.ctx, bson.D{{"_id", id}})
+	err := result.Err()
+	if err == mongo.ErrNoDocuments {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, true, err
+	}
+
+	environment := &entities.Environment{}
+	err = result.Decode(environment)
+	if err != nil {
+		return nil, true, err
+	}
+
+	return environment, true, nil
+}
+
 func (e *Environments) List() ([]entities.Environment, error) {
 	cursor, err := e.collection.Find(e.ctx, bson.D{})
 	if err != nil {

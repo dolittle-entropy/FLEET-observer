@@ -33,6 +33,24 @@ func (d *Deployments) Set(deployment entities.Deployment) error {
 	return err
 }
 
+func (d *Deployments) Get(id entities.DeploymentUID) (*entities.Deployment, bool, error) {
+	result := d.collection.FindOne(d.ctx, bson.D{{"_id", id}})
+	err := result.Err()
+	if err == mongo.ErrNoDocuments {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, true, err
+	}
+
+	deployment := &entities.Deployment{}
+	err = result.Decode(deployment)
+	if err != nil {
+		return nil, true, err
+	}
+
+	return deployment, true, nil
+}
+
 func (d *Deployments) List() ([]entities.Deployment, error) {
 	cursor, err := d.collection.Find(d.ctx, bson.D{})
 	if err != nil {
@@ -55,6 +73,25 @@ func (d *Deployments) SetInstance(instance entities.DeploymentInstance) error {
 
 func (d *Deployments) ListInstances() ([]entities.DeploymentInstance, error) {
 	cursor, err := d.instancesCollection.Find(d.ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	var instances []entities.DeploymentInstance
+	if err := cursor.All(d.ctx, &instances); err != nil {
+		return nil, err
+	}
+
+	return instances, cursor.Close(d.ctx)
+}
+
+func (d *Deployments) ListRunningInstances() ([]entities.DeploymentInstance, error) {
+	cursor, err := d.instancesCollection.Find(d.ctx, bson.D{
+		{"$or", bson.A{
+			bson.D{{"properties.stopped", bson.D{{"$exists", false}}}},
+			bson.D{{"properties.stopped", nil}},
+		}},
+	})
 	if err != nil {
 		return nil, err
 	}

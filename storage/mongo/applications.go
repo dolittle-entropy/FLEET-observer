@@ -31,6 +31,24 @@ func (a *Applications) Set(application entities.Application) error {
 	return err
 }
 
+func (a *Applications) Get(id entities.ApplicationUID) (*entities.Application, bool, error) {
+	result := a.collection.FindOne(a.ctx, bson.D{{"_id", id}})
+	err := result.Err()
+	if err == mongo.ErrNoDocuments {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, true, err
+	}
+
+	application := &entities.Application{}
+	err = result.Decode(application)
+	if err != nil {
+		return nil, true, err
+	}
+
+	return application, true, nil
+}
+
 func (a *Applications) List() ([]entities.Application, error) {
 	cursor, err := a.collection.Find(a.ctx, bson.D{})
 	if err != nil {
