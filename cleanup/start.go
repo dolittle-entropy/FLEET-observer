@@ -30,17 +30,17 @@ type Cleaner interface {
 }
 
 func RunCleaner(cleaner Cleaner, period time.Duration, factory informers.SharedInformerFactory, logger zerolog.Logger, ctx context.Context) {
-	timer := time.NewTimer(1 * time.Second)
+	timer := time.NewTimer(period)
 
 	for {
-		factory.WaitForCacheSync(ctx.Done())
-
 		select {
 		case <-ctx.Done():
 			logger.Debug().Msg("Stopping cleanup")
 			return
 		case <-timer.C:
 		}
+
+		factory.WaitForCacheSync(ctx.Done())
 
 		logger.Debug().Msg("Running cleanup")
 

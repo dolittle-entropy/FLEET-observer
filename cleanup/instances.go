@@ -8,10 +8,10 @@ package cleanup
 import (
 	"context"
 	"dolittle.io/fleet-observer/storage"
-	"fmt"
 	"github.com/rs/zerolog"
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	v1 "k8s.io/client-go/listers/core/v1"
+	listerCoreV1 "k8s.io/client-go/listers/core/v1"
 	"time"
 )
 
@@ -19,21 +19,34 @@ type Instances struct {
 	deployments  storage.Deployments
 	environments storage.Environments
 	applications storage.Applications
-	pods         v1.PodLister
+	pods         listerCoreV1.PodLister
 	logger       zerolog.Logger
 }
 
 func (i *Instances) Cleanup(ctx context.Context) error {
-	running, err := i.deployments.ListRunningInstances()
+	runningInstances, err := i.deployments.ListRunningInstances()
 	if err != nil {
 		return err
+	}
+
+	existingPods, err := i.pods.List(labels.Everything())
+	if err != nil {
+		return err
+	}
+
+	runningPodsByUID := map[string]bool{}
+	for _, pod := range existingPods {
+		if pod.Status.Phase == coreV1.PodFailed || pod.Status.Phase == coreV1.PodSucceeded {
+			continue
+		}
+		runningPodsByUID[string(pod.GetUID())] = true
 	}
 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
-	for _, instance := range running {
+	for _, instance := range runningInstances {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -45,66 +58,7 @@ func (i *Instances) Cleanup(ctx context.Context) error {
 			continue
 		}
 
-		deployment, found, err := i.deployments.Get(instance.Links.InstanceOfDeploymentUID)
-		if err != nil {
-			return err
-		}
-		if !found {
-			i.logger.Warn().
-				Str("uid", string(instance.Links.InstanceOfDeploymentUID)).
-				Msg("Deployment for DeploymentInstance not found in storage")
-			continue
-		}
-
-		environment, found, err := i.environments.Get(deployment.Links.DeployedInEnvironmentUID)
-		if err != nil {
-			return err
-		}
-		if !found {
-			i.logger.Warn().
-				Str("uid", string(deployment.Links.DeployedInEnvironmentUID)).
-				Msg("Environment for Deployment not found in storage")
-			continue
-		}
-
-		application, found, err := i.applications.Get(environment.Links.EnvironmentOfApplicationUID)
-		if err != nil {
-			return err
-		}
-		if !found {
-			i.logger.Warn().
-				Str("uid", string(environment.Links.EnvironmentOfApplicationUID)).
-				Msg("Application for Environment not found in storage")
-			continue
-		}
-
-		namespace := fmt.Sprintf("application-%s", application.Properties.ID)
-		selector, err := labels.ValidatedSelectorFromSet(labels.Set{
-			"application":  application.Properties.Name,
-			"environment":  environment.Properties.Name,
-			"microservice": deployment.Properties.Name,
-		})
-		if err != nil {
-			i.logger.Warn().
-				Err(err).
-				Msg("Failed to create pod selector")
-			continue
-		}
-
-		pods, err := i.pods.Pods(namespace).List(selector)
-		if err != nil {
-			return err
-		}
-
-		podStillRunning := false
-		for _, pod := range pods {
-			if string(pod.GetUID()) == instance.Properties.ID {
-				podStillRunning = true
-				break
-			}
-		}
-
-		if podStillRunning {
+		if podStillRunning := runningPodsByUID[instance.Properties.ID]; podStillRunning {
 			continue
 		}
 

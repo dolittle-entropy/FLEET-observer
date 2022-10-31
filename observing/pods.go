@@ -168,6 +168,18 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 		revision,
 		string(pod.GetUID()),
 	)
+
+	var stoppedTime *time.Time
+	if instance, exists, err := ph.deployments.GetInstance(instanceID); err != nil {
+		return err
+	} else if exists {
+		stoppedTime = instance.Properties.Stopped
+	}
+	if stoppedTime == nil && deleted {
+		now := time.Now().UTC()
+		stoppedTime = &now
+	}
+
 	instance := entities.NewDeploymentInstance(
 		tenantID,
 		applicationID,
@@ -175,7 +187,7 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 		revision,
 		string(pod.GetUID()),
 		pod.GetCreationTimestamp().UTC(),
-		ph.stoppedTime(deleted),
+		stoppedTime,
 		customerConfig,
 		runtimeConfig,
 		pod.Spec.NodeName,
@@ -264,15 +276,6 @@ func (ph *PodsHandler) updateRestartEvent(event entities.Event) error {
 	}
 
 	return ph.events.Set(event)
-}
-
-func (ph *PodsHandler) stoppedTime(deleted bool) *time.Time {
-	if !deleted {
-		return nil
-	}
-
-	now := time.Now().UTC()
-	return &now
 }
 
 func GetPodOwner(pod *coreV1.Pod, replicasets listersAppsV1.ReplicaSetLister) (*appsV1.ReplicaSet, error) {

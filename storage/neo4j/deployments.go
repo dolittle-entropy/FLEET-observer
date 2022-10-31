@@ -214,6 +214,42 @@ func (d *Deployments) SetInstance(instance entities.DeploymentInstance) error {
 			RETURN id(instance)
 		`)
 }
+func (d *Deployments) GetInstance(id entities.DeploymentInstanceUID) (*entities.DeploymentInstance, bool, error) {
+	instance := &entities.DeploymentInstance{}
+	found, err := findSingleJson(
+		d.session,
+		d.ctx,
+		map[string]any{
+			"uid": id,
+		},
+		`
+			MATCH (instance:DeploymentInstance { _uid: $uid })-[:InstanceOf]->(deployment:Deployment)
+			WITH instance, deployment
+				MATCH (instance)-[:UsesArtifactConfiguration]->(artifact:ArtifactConfiguration)
+			WITH instance, deployment, artifact
+				MATCH (instance)-[:UsesRuntimeConfiguration]->(runtime:RuntimeConfiguration)
+			WITH instance, deployment, artifact, runtime
+				MATCH (instance)-[:ScheduledOn]->(node:Node)
+			WITH {
+				uid: instance._uid,
+				type: "DeploymentInstance",
+				properties: {
+					id: instance.id,
+					started: toString(instance.started),
+					stopped: toString(instance.stopped)
+				},
+				links: {
+					instanceOf: deployment._uid,
+					usesArtifactConfiguration: artifact._uid,
+					usesRuntimeConfiguration: runtime._uid,
+					scheduledOn: node._uid
+				}
+			} as entry
+			RETURN apoc.convert.toJson(entry) as json
+		`,
+		instance)
+	return instance, found, err
+}
 
 func (d *Deployments) ListInstances() ([]entities.DeploymentInstance, error) {
 	var instances []entities.DeploymentInstance

@@ -12,6 +12,7 @@ type Deployments interface {
 	Get(id entities.DeploymentUID) (*entities.Deployment, bool, error)
 	List() ([]entities.Deployment, error)
 	SetInstance(instance entities.DeploymentInstance) error
+	GetInstance(id entities.DeploymentInstanceUID) (*entities.DeploymentInstance, bool, error)
 	ListInstances() ([]entities.DeploymentInstance, error)
 	ListRunningInstances() ([]entities.DeploymentInstance, error)
 }
