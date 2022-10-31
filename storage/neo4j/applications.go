@@ -51,6 +51,33 @@ func (a *Applications) Set(application entities.Application) error {
 		`)
 }
 
+func (a *Applications) Get(id entities.ApplicationUID) (*entities.Application, bool, error) {
+	application := &entities.Application{}
+	found, err := findSingleJson(
+		a.session,
+		a.ctx,
+		map[string]any{
+			"uid": id,
+		},
+		`
+			MATCH (application:Application { _uid: $uid })-[:OwnedBy]->(customer:Customer)
+			WITH {
+				uid: application._uid,
+				type: "Application",
+				properties: {
+					id: application.id,
+					name: application.name
+				},
+				links: {
+					ownedBy: customer._uid
+				}
+			} as entry
+			RETURN apoc.convert.toJson(entry) as json
+		`,
+		application)
+	return application, found, err
+}
+
 func (a *Applications) List() ([]entities.Application, error) {
 	var applications []entities.Application
 	return applications, findAllJson(

@@ -9,5 +9,6 @@ import "dolittle.io/fleet-observer/entities"
 
 type Applications interface {
 	Set(application entities.Application) error
+	Get(id entities.ApplicationUID) (*entities.Application, bool, error)
 	List() ([]entities.Application, error)
 }

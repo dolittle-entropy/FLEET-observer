@@ -9,5 +9,6 @@ import "dolittle.io/fleet-observer/entities"
 
 type Environments interface {
 	Set(environment entities.Environment) error
+	Get(id entities.EnvironmentUID) (*entities.Environment, bool, error)
 	List() ([]entities.Environment, error)
 }

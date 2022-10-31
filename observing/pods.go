@@ -9,7 +9,6 @@ import (
 	"dolittle.io/fleet-observer/entities"
 	"dolittle.io/fleet-observer/kubernetes"
 	"dolittle.io/fleet-observer/storage"
-	"fmt"
 	"github.com/rs/zerolog"
 	appsV1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
@@ -132,6 +131,11 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 	if err != nil {
 		return err
 	}
+	revision, ok := replicaset.GetAnnotations()["deployment.kubernetes.io/revision"]
+	if !ok {
+		logger.Trace().Msg("Skipping pod because the replicaset does not have a revision annotation")
+		return nil
+	}
 
 	runtimeConfig := entities.NewRuntimeConfiguration(
 		tenantID,
@@ -161,14 +165,14 @@ func (ph *PodsHandler) Handle(obj any, deleted bool) error {
 		tenantID,
 		applicationID,
 		environmentName,
-		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		revision,
 		string(pod.GetUID()),
 	)
 	instance := entities.NewDeploymentInstance(
 		tenantID,
 		applicationID,
 		environmentName,
-		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		revision,
 		string(pod.GetUID()),
 		pod.GetCreationTimestamp().UTC(),
 		ph.stoppedTime(deleted),

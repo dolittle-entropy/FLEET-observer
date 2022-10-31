@@ -9,7 +9,9 @@ import "dolittle.io/fleet-observer/entities"
 
 type Deployments interface {
 	Set(deployment entities.Deployment) error
+	Get(id entities.DeploymentUID) (*entities.Deployment, bool, error)
 	List() ([]entities.Deployment, error)
 	SetInstance(instance entities.DeploymentInstance) error
 	ListInstances() ([]entities.DeploymentInstance, error)
+	ListRunningInstances() ([]entities.DeploymentInstance, error)
 }

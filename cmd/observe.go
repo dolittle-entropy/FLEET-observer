@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"dolittle.io/fleet-observer/cleanup"
 	"dolittle.io/fleet-observer/config"
 	"dolittle.io/fleet-observer/kubernetes"
 	"dolittle.io/fleet-observer/observing"
@@ -38,6 +39,8 @@ var observe = &cobra.Command{
 		}
 
 		observing.StartAllObservers(factory, repositories, logger, ctx)
+		cleanup.StartAllCleanup(config.Duration("cleanup.interval"), factory, repositories, logger, ctx)
+
 		go factory.Start(ctx.Done())
 
 		return WaitForStop(logger, ctx)
@@ -46,4 +49,5 @@ var observe = &cobra.Command{
 
 func init() {
 	observe.Flags().String("kubernetes.sync-interval", "1m", "The Kubernetes informer sync interval")
+	observe.Flags().String("cleanup.interval", "1m", "The interval to run cleanup jobs")
 }

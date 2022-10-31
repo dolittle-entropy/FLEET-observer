@@ -8,7 +8,6 @@ package observing
 import (
 	"dolittle.io/fleet-observer/entities"
 	"dolittle.io/fleet-observer/storage"
-	"fmt"
 	"github.com/rs/zerolog"
 	appsV1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
@@ -47,6 +46,18 @@ func (rh *ReplicasetHandler) Handle(obj any, _deleted bool) error {
 	tenantID, applicationID, environmentName, microserviceID, ok := GetMicroserviceIdentifiers(replicaset.ObjectMeta)
 	if !ok {
 		logger.Trace().Msg("Skipping replicaset because it is missing microservice identifiers")
+		return nil
+	}
+
+	deploymentName, ok := replicaset.GetLabels()["microservice"]
+	if !ok {
+		logger.Trace().Msg("Skipping replicaset because it does not have a microservice label")
+		return nil
+	}
+
+	revision, ok := replicaset.GetAnnotations()["deployment.kubernetes.io/revision"]
+	if !ok {
+		logger.Trace().Msg("Skipping replicaset because it does not have a revision annotation")
 		return nil
 	}
 
@@ -90,7 +101,8 @@ func (rh *ReplicasetHandler) Handle(obj any, _deleted bool) error {
 		tenantID,
 		applicationID,
 		environmentName,
-		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		revision,
+		deploymentName,
 		replicaset.GetCreationTimestamp().UTC(),
 		artifactVersion,
 		runtimeVersion,

@@ -8,7 +8,6 @@ package observing
 import (
 	"dolittle.io/fleet-observer/entities"
 	"dolittle.io/fleet-observer/storage"
-	"fmt"
 	"github.com/rs/zerolog"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,9 +64,14 @@ func (eh *EventsHandler) Handle(obj any, _deleted bool) error {
 		return nil
 	}
 
-	replicaSet, err := GetPodOwner(pod, eh.replicasets)
+	replicaset, err := GetPodOwner(pod, eh.replicasets)
 	if err != nil {
 		logger.Trace().Msg("Skipping event because the pod owner could not be found")
+		return nil
+	}
+	revision, ok := replicaset.GetAnnotations()["deployment.kubernetes.io/revision"]
+	if !ok {
+		logger.Trace().Msg("Skipping event because the replicaset does not have a revision annotation")
 		return nil
 	}
 
@@ -75,7 +79,7 @@ func (eh *EventsHandler) Handle(obj any, _deleted bool) error {
 		tenantID,
 		applicationID,
 		environmentName,
-		fmt.Sprintf("%v", replicaSet.GetGeneration()),
+		revision,
 		string(pod.GetUID()),
 	)
 
