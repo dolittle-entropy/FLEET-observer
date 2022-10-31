@@ -8,7 +8,6 @@ package observing
 import (
 	"dolittle.io/fleet-observer/entities"
 	"dolittle.io/fleet-observer/storage"
-	"fmt"
 	"github.com/rs/zerolog"
 	appsV1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
@@ -50,13 +49,23 @@ func (rh *ReplicasetHandler) Handle(obj any, _deleted bool) error {
 		return nil
 	}
 
+	deploymentName, ok := replicaset.GetLabels()["microservice"]
+	if !ok {
+		logger.Trace().Msg("Skipping replicaset because it does not have a microservice label")
+		return nil
+	}
+
+	revision, ok := replicaset.GetAnnotations()["deployment.kubernetes.io/revision"]
+	if !ok {
+		logger.Trace().Msg("Skipping replicaset because it does not have a revision annotation")
+		return nil
+	}
+
 	runtimeContainer, headContainer, ok := getRuntimeAndHeadContainer(replicaset.Spec.Template.Spec)
 	if !ok {
 		logger.Trace().Msg("Skipping replicaset because it does not have a runtime and head container")
 		return nil
 	}
-
-	deploymentName := replicaset.GetLabels()["microservice"]
 
 	artifactVersionName := getArtifactVersionName(headContainer)
 	runtimeVersion, err := parseRuntimeVersion(runtimeContainer)
@@ -92,7 +101,7 @@ func (rh *ReplicasetHandler) Handle(obj any, _deleted bool) error {
 		tenantID,
 		applicationID,
 		environmentName,
-		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		revision,
 		deploymentName,
 		replicaset.GetCreationTimestamp().UTC(),
 		artifactVersion,
