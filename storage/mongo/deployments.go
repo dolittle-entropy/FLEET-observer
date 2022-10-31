@@ -71,6 +71,24 @@ func (d *Deployments) SetInstance(instance entities.DeploymentInstance) error {
 	return err
 }
 
+func (d *Deployments) GetInstance(id entities.DeploymentInstanceUID) (*entities.DeploymentInstance, bool, error) {
+	result := d.instancesCollection.FindOne(d.ctx, bson.D{{"_id", id}})
+	err := result.Err()
+	if err == mongo.ErrNoDocuments {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, true, err
+	}
+
+	instance := &entities.DeploymentInstance{}
+	err = result.Decode(instance)
+	if err != nil {
+		return nil, true, err
+	}
+
+	return instance, true, nil
+}
+
 func (d *Deployments) ListInstances() ([]entities.DeploymentInstance, error) {
 	cursor, err := d.instancesCollection.Find(d.ctx, bson.D{})
 	if err != nil {
