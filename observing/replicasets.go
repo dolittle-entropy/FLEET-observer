@@ -56,6 +56,8 @@ func (rh *ReplicasetHandler) Handle(obj any, _deleted bool) error {
 		return nil
 	}
 
+	deploymentName := replicaset.GetLabels()["microservice"]
+
 	artifactVersionName := getArtifactVersionName(headContainer)
 	runtimeVersion, err := parseRuntimeVersion(runtimeContainer)
 	if err != nil {
@@ -91,6 +93,7 @@ func (rh *ReplicasetHandler) Handle(obj any, _deleted bool) error {
 		applicationID,
 		environmentName,
 		fmt.Sprintf("%v", replicaset.GetGeneration()),
+		deploymentName,
 		replicaset.GetCreationTimestamp().UTC(),
 		artifactVersion,
 		runtimeVersion,

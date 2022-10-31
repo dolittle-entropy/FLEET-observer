@@ -20,6 +20,7 @@ type Deployment struct {
 
 	Properties struct {
 		ID      string    `bson:"id" json:"id"`
+		Name    string    `bson:"name" json:"name"`
 		Created time.Time `bson:"created" json:"created"`
 	} `bson:"properties" json:"properties"`
 
@@ -34,11 +35,12 @@ func NewDeploymentUID(customerID, applicationID, environment, deploymentID strin
 	return DeploymentUID(fmt.Sprintf("%v/%v", NewEnvironmentUID(customerID, applicationID, environment), deploymentID))
 }
 
-func NewDeployment(customerID, applicationID, environment, id string, created time.Time, artifact ArtifactVersion, runtime RuntimeVersion) Deployment {
+func NewDeployment(customerID, applicationID, environment, id, name string, created time.Time, artifact ArtifactVersion, runtime RuntimeVersion) Deployment {
 	deployment := Deployment{}
 	deployment.UID = NewDeploymentUID(customerID, applicationID, environment, id)
 	deployment.Type = DeploymentType
 	deployment.Properties.ID = id
+	deployment.Properties.Name = name
 	deployment.Properties.Created = created
 	deployment.Links.DeployedInEnvironmentUID = NewEnvironmentUID(customerID, applicationID, environment)
 	deployment.Links.UsesArtifactVersionUID = artifact.UID

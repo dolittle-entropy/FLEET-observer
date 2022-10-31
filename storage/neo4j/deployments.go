@@ -31,6 +31,7 @@ func (d *Deployments) Set(deployment entities.Deployment) error {
 		map[string]any{
 			"uid":                       deployment.UID,
 			"id":                        deployment.Properties.ID,
+			"name":                      deployment.Properties.Name,
 			"created":                   deployment.Properties.Created.Format(time.RFC3339),
 			"link_environment_uid":      deployment.Links.DeployedInEnvironmentUID,
 			"link_artifact_version_uid": deployment.Links.UsesArtifactVersionUID,
@@ -38,7 +39,7 @@ func (d *Deployments) Set(deployment entities.Deployment) error {
 		},
 		`
 			MERGE (deployment:Deployment { _uid: $uid })
-			SET deployment = { _uid: $uid, id: $id, created: datetime($created) }
+			SET deployment = { _uid: $uid, id: $id, name: $name, created: datetime($created) }
 			RETURN id(deployment)
 		`,
 		`
